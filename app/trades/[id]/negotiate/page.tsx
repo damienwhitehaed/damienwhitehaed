@@ -1,0 +1,2 @@
+import { prisma } from '@/lib/prisma';
+export default async function TradeNegotiation({params}:{params:{id:string}}){const trade=await prisma.tradeOffer.findUnique({where:{id:params.id},include:{cards:true}}); if(!trade)return <div>Not found</div>;return <div><h1 className='text-2xl'>Trade Negotiation</h1><p>Status: {trade.status}</p><p>Proposer cash: {trade.proposerCashCents}</p><p>Counterparty cash: {trade.counterpartyCashCents}</p></div>;}

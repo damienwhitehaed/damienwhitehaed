@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role { USER ADMIN }
+enum GradeCompany { PSA BGS CGC RAW }
+enum ListingMode { TRADE SALE BOTH }
+enum TradeStatus { PROPOSED NEGOTIATING ACCEPTED AWAITING_SHIPMENT SHIPPED RECEIVED_BY_TRADEHUB AUTHENTICATION COMPLETED PAUSED_MISMATCH CANCELLED }
+enum VerificationDecision { APPROVED MISMATCH REJECTED }
+
+model User {
+  id             String               @id @default(uuid())
+  username       String               @unique
+  email          String               @unique
+  passwordHash   String
+  role           Role                 @default(USER)
+  rating         Decimal              @default(5.0) @db.Decimal(2, 1)
+  strikes        Int                  @default(0)
+  isBanned       Boolean              @default(false)
+  cards          Card[]
+  proposedTrades TradeOffer[]         @relation("ProposerTrades")
+  counterTrades  TradeOffer[]         @relation("CounterpartyTrades")
+  offeredCards   TradeOfferCard[]
+  adminReports   VerificationReport[] @relation("AdminReports")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+}
+
+model Card {
+  id                  String               @id @default(uuid())
+  ownerId             String
+  owner               User                 @relation(fields: [ownerId], references: [id])
+  name                String
+  setName             String?
+  gradeCompany        GradeCompany
+  gradeValue          String?
+  conditionNote       String?
+  estimatedValueCents Int
+  description         String?
+  frontImageUrl       String
+  backImageUrl        String
+  isForTrade          Boolean              @default(false)
+  isForSale           Boolean              @default(false)
+  listingMode         ListingMode          @default(BOTH)
+  offerCards          TradeOfferCard[]
+  verificationReports VerificationReport[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model TradeOffer {
+  id                             String               @id @default(uuid())
+  proposerId                     String
+  proposer                       User                 @relation("ProposerTrades", fields: [proposerId], references: [id])
+  counterpartyId                 String
+  counterparty                   User                 @relation("CounterpartyTrades", fields: [counterpartyId], references: [id])
+  status                         TradeStatus          @default(PROPOSED)
+  proposerCashCents              Int                  @default(0)
+  counterpartyCashCents          Int                  @default(0)
+  agreedValueCents               Int?
+  proposerFeeCents               Int?
+  counterpartyFeeCents           Int?
+  proposerAccepted               Boolean              @default(false)
+  counterpartyAccepted           Boolean              @default(false)
+  trackingToHubProposer          String?
+  trackingToHubCounterparty      String?
+  trackingToNewOwnerProposer     String?
+  trackingToNewOwnerCounterparty String?
+  cards                          TradeOfferCard[]
+  verificationReports            VerificationReport[]
+  createdAt                      DateTime             @default(now())
+  updatedAt                      DateTime             @updatedAt
+}
+
+model TradeOfferCard {
+  id              String     @id @default(uuid())
+  tradeOfferId    String
+  tradeOffer      TradeOffer @relation(fields: [tradeOfferId], references: [id], onDelete: Cascade)
+  offeredByUserId String
+  offeredByUser   User       @relation(fields: [offeredByUserId], references: [id])
+  cardId          String
+  card            Card       @relation(fields: [cardId], references: [id])
+  createdAt       DateTime   @default(now())
+}
+
+model VerificationReport {
+  id                String               @id @default(uuid())
+  tradeOfferId      String
+  tradeOffer        TradeOffer           @relation(fields: [tradeOfferId], references: [id])
+  cardId            String
+  card              Card                 @relation(fields: [cardId], references: [id])
+  reviewedByAdminId String
+  reviewedByAdmin   User                 @relation("AdminReports", fields: [reviewedByAdminId], references: [id])
+  decision          VerificationDecision
+  notes             String?
+  createdAt         DateTime             @default(now())
+}
