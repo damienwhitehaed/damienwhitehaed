@@ -1,0 +1,3 @@
+import { z } from 'zod';
+export const signupSchema = z.object({ username: z.string().min(3), email: z.string().email(), password: z.string().min(8) });
+export const cardSchema = z.object({ name: z.string().min(1), setName: z.string().optional(), gradeCompany: z.enum(['PSA','BGS','CGC','RAW']), gradeValue: z.string().optional(), conditionNote: z.string().optional(), estimatedValueCents: z.coerce.number().int().nonnegative(), description: z.string().optional(), frontImageUrl: z.string().url(), backImageUrl: z.string().url(), isForTrade: z.boolean(), isForSale: z.boolean(), listingMode: z.enum(['TRADE','SALE','BOTH']) });
